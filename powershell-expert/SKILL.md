@@ -175,37 +175,73 @@ When recommending modules, search the PowerShell Gallery:
 
 ## Live Verification
 
-Use WebFetch and WebSearch to verify accuracy when:
-- **Recommending modules** - Confirm they exist and are actively maintained
-- **Citing cmdlet syntax** - Verify parameters haven't changed
-- **Checking version requirements** - Confirm compatibility information
+You MUST verify information against live sources when accuracy is critical. Do not rely solely on training data for module availability or cmdlet syntax.
 
-### Verify Module Exists
-```
-WebFetch: https://www.powershellgallery.com/packages/{ModuleName}
-Prompt: "Extract module name, latest version, last updated date, total downloads, and whether it's deprecated or unlisted"
-```
+### When Verification is Required
 
-### Verify Cmdlet Syntax
-```
-WebFetch: https://learn.microsoft.com/en-us/powershell/module/{module}/{cmdlet-name}
-Prompt: "Extract the cmdlet syntax, required parameters, and any version requirements"
-```
-
-### Search for Current Information
-```
-WebSearch: "PowerShell {topic} site:learn.microsoft.com"
-WebSearch: "PSResourceGet {cmdlet} 2024" (for recent changes)
-```
-
-### When to Verify
 | Scenario | Action |
 |----------|--------|
-| User asks "does module X exist?" | Always verify via WebFetch |
-| Recommending a specific module | Verify it's not deprecated |
-| Providing exact cmdlet syntax | Verify against current docs |
-| Module version requirements | Check gallery for latest version |
+| User asks "does module X exist?" | **MUST** verify via PowerShell Gallery |
+| Recommending a specific module | **MUST** verify it exists and isn't deprecated |
+| Providing exact cmdlet syntax | **SHOULD** verify against Microsoft Docs |
+| Module version requirements | **MUST** check gallery for current version |
 | General best practices | Static references are sufficient |
+
+### Step 1: Verify Module on PowerShell Gallery
+
+When recommending or checking a module, fetch its gallery page:
+
+```
+URL: https://www.powershellgallery.com/packages/{ModuleName}
+Prompt: "Extract: module name, latest version, last updated date, total downloads,
+        and whether it shows any deprecation warning or 'unlisted' status"
+```
+
+**If WebFetch returns 404 or error**: The module likely doesn't exist. Use WebSearch to confirm:
+```
+Query: "{ModuleName} PowerShell module site:powershellgallery.com"
+```
+
+### Step 2: Verify Cmdlet Syntax (When Needed)
+
+Microsoft Docs URLs vary by module. Use WebSearch to find the correct documentation page:
+
+```
+Query: "{Cmdlet-Name} cmdlet site:learn.microsoft.com/en-us/powershell"
+```
+
+Then fetch the returned URL to extract:
+- Complete syntax with all parameter sets
+- Required vs optional parameters
+- PowerShell version requirements
+
+### Step 3: Fallback Strategies
+
+If WebFetch/WebSearch are unavailable or fail:
+
+1. **For module verification**: Execute `Search-Gallery.ps1` from this skill:
+   ```powershell
+   ~/.claude/skills/powershell-expert/scripts/Search-Gallery.ps1 -Name 'ModuleName'
+   ```
+
+2. **For cmdlet syntax**: Suggest the user run locally:
+   ```powershell
+   Get-Help Cmdlet-Name -Full
+   Get-Command Cmdlet-Name -Syntax
+   ```
+
+3. **Clearly state uncertainty**: If verification fails, tell the user:
+   > "I wasn't able to verify this against live documentation. Please confirm
+   > the module exists by running: `Find-PSResource -Name 'ModuleName'`"
+
+### Verification Examples
+
+**Good** (verified with live data):
+> "The ImportExcel module (v7.8.10, updated Oct 2024, 17M+ downloads)
+> provides Export-Excel for creating spreadsheets without Excel installed."
+
+**Bad** (unverified claim):
+> "Use the Excel-Tools module to export data." ← May not exist!
 
 ## Documentation Resources
 
