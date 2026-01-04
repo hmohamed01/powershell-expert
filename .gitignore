@@ -15,5 +15,3 @@ Desktop.ini
 *.swo
 *~
 
-# Packaged skill (rebuild from source)
-*.skill
