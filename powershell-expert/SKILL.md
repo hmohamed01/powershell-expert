@@ -162,7 +162,7 @@ process {
 
 ## Module Recommendations
 
-When recommending modules, search the PowerShell Gallery:
+When recommending modules, search the PowerShell Gallery. These are common starting points — **always verify via the Live Verification workflow before recommending**:
 
 | Category | Popular Modules |
 |----------|----------------|
@@ -212,6 +212,10 @@ Microsoft Docs URLs vary by module. **Use the WebSearch tool** to find the corre
 **Then use WebFetch** on the returned URL with prompt:
 - **Prompt**: `Extract the complete cmdlet syntax, required vs optional parameters, and PowerShell version requirements`
 
+**For PSResourceGet cmdlets specifically**, fetch the raw markdown directly:
+- **URL**: `https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/{Cmdlet-Name}.md`
+- **Prompt**: `Extract the complete cmdlet syntax, required vs optional parameters, and examples`
+
 ### Step 3: Fallback Strategies
 
 If the WebFetch or WebSearch tools are unavailable or return errors:
@@ -245,7 +249,8 @@ If the WebFetch or WebSearch tools are unavailable or return errors:
 - **PowerShell Docs**: https://learn.microsoft.com/en-us/powershell/
 - **Module Browser**: https://learn.microsoft.com/en-us/powershell/module/
 - **PowerShell Gallery**: https://www.powershellgallery.com
-- **GitHub Docs**: https://github.com/MicrosoftDocs/PowerShell-Docs
+- **GitHub Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/live/reference/
+- **PSResourceGet Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/
 
 ## References
 

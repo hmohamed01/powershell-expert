@@ -298,7 +298,8 @@ Find-PSResource -Name '*' -Repository PSGallery |
 ## Useful Links
 
 - **PowerShell Gallery**: https://www.powershellgallery.com
-- **Gallery Status**: https://aka.ms/psgallery-status
-- **Gallery Issues**: https://aka.ms/psgallery-issues
+- **Gallery Status**: https://raw.githubusercontent.com/PowerShell/PowerShellGallery/master/psgallery_status.md
+- **Gallery Issues**: https://github.com/PowerShell/PowerShellGallery/issues
 - **Module Browser**: https://learn.microsoft.com/en-us/powershell/module/
 - **PSResourceGet Docs**: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.psresourceget/
+- **PSResourceGet Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/

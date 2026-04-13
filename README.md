@@ -1,6 +1,7 @@
 # PowerShell Expert Skill
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/Version-1.1.0-green.svg)](CHANGELOG.md)
 [![Platform](https://img.shields.io/badge/Platform-Windows%20|%20PowerShell%207+-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-blueviolet.svg)](https://claude.ai/code)
 
@@ -53,10 +54,11 @@ When accuracy is critical, the skill verifies information against live sources:
 | Verification Type | Source |
 |-------------------|--------|
 | Module exists/active | PowerShell Gallery |
-| Cmdlet syntax | Microsoft Docs |
+| Cmdlet syntax | Microsoft Learn / raw GitHub docs |
+| PSResourceGet cmdlets | Raw GitHub markdown (deterministic URL) |
 | Version requirements | Gallery metadata |
 
-This ensures module recommendations aren't deprecated and cmdlet parameters are current.
+Module recommendations are always verified before being presented. If live verification fails, the skill falls back to executing `Search-Gallery.ps1` locally or prompts the user to verify manually.
 
 ## Skill Contents
 
@@ -76,7 +78,8 @@ powershell-expert/
 - [PowerShell Docs](https://learn.microsoft.com/en-us/powershell/)
 - [PowerShell Gallery](https://www.powershellgallery.com/)
 - [Module Browser](https://learn.microsoft.com/en-us/powershell/module/)
-- [PowerShell-Docs GitHub](https://github.com/MicrosoftDocs/PowerShell-Docs)
+- [PowerShell-Docs (raw)](https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/live/reference/)
+- [PSResourceGet Docs (raw)](https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/)
 
 ## License
 
