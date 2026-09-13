@@ -63,19 +63,20 @@ param(
 )
 
 # Ensure PSResourceGet is available
-$psrg = Get-Module -Name Microsoft.PowerShell.PSResourceGet -ListAvailable
-if (-not $psrg) {
+$useLegacy = -not (Get-Module -Name Microsoft.PowerShell.PSResourceGet -ListAvailable)
+if ($useLegacy) {
     Write-Warning "Microsoft.PowerShell.PSResourceGet not found. Using legacy Find-Module."
-    $useLegacy = $true
 }
 
-# Build search parameters
+# Build search parameters. Find-Module and Find-PSResource diverge on prerelease and
+# resource-type switches, so only the shared parameters go in the base hashtable.
 $searchParams = @{
     Repository = 'PSGallery'
 }
 
 if ($Prerelease) {
-    $searchParams.Prerelease = $true
+    if ($useLegacy) { $searchParams.AllowPrerelease = $true }
+    else { $searchParams.Prerelease = $true }
 }
 
 # Execute search based on parameter set
@@ -83,12 +84,18 @@ $results = switch ($PSCmdlet.ParameterSetName) {
     'ByName' {
         $searchParams.Name = $Name
         if ($Tag) { $searchParams.Tag = $Tag }
-        if ($Type -ne 'All') { $searchParams.Type = $Type }
 
         if ($useLegacy) {
-            Find-Module @searchParams -ErrorAction SilentlyContinue |
-                Select-Object -First $First
+            # Find-Module has no -Type parameter; it only ever returns modules.
+            if ($Type -eq 'Script') {
+                Find-Script @searchParams -ErrorAction SilentlyContinue |
+                    Select-Object -First $First
+            } else {
+                Find-Module @searchParams -ErrorAction SilentlyContinue |
+                    Select-Object -First $First
+            }
         } else {
+            if ($Type -ne 'All') { $searchParams.Type = $Type }
             Find-PSResource @searchParams -ErrorAction SilentlyContinue |
                 Select-Object -First $First
         }
@@ -123,7 +130,7 @@ $results | ForEach-Object {
     [PSCustomObject]@{
         Name        = $_.Name
         Version     = $_.Version
-        Description = if ($_.Description.Length -gt 80) {
+        Description = if ($_.Description -and $_.Description.Length -gt 80) {
             $_.Description.Substring(0, 77) + '...'
         } else {
             $_.Description

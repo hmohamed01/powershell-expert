@@ -162,7 +162,7 @@ process {
 
 ## Module Recommendations
 
-When recommending modules, search the PowerShell Gallery. These are common starting points — **always verify via the Live Verification workflow before recommending**:
+When recommending modules, search the PowerShell Gallery. These are common starting points — **always verify via [Module Verification](#module-verification) before recommending**:
 
 | Category | Popular Modules |
 |----------|----------------|
@@ -173,87 +173,114 @@ When recommending modules, search the PowerShell Gallery. These are common start
 | **Web** | `Pode` (web server), `PoshRSJob` (async) |
 | **GUI** | `WPFBot3000`, `PSGUI` |
 
-## Live Verification
+## Documentation Lookup
 
-You MUST verify information against live sources when accuracy is critical. Do not rely solely on training data for module availability or cmdlet syntax.
+Verify cmdlet syntax and module availability against live sources rather than recalled
+detail. Every `learn.microsoft.com` PowerShell page is generated from markdown in a
+public MicrosoftDocs repository — **fetch the markdown, not the rendered page**. The
+source is far smaller, carries no navigation chrome or JavaScript, and preserves syntax
+blocks and parameter tables verbatim.
 
-**Tools to use:**
-- **WebFetch**: Retrieve and parse specific documentation URLs (PowerShell Gallery pages, Microsoft Docs)
-- **WebSearch**: Find correct URLs when the exact path is unknown or to verify module existence
+### Raw Markdown Sources (WebFetch)
 
-### When Verification is Required
+Use the **WebFetch** tool against `raw.githubusercontent.com`. Construct the URL
+directly from the templates below — do not search for it first.
 
-| Scenario | Action |
-|----------|--------|
-| User asks "does module X exist?" | **MUST** verify via PowerShell Gallery |
-| Recommending a specific module | **MUST** verify it exists and isn't deprecated |
-| Providing exact cmdlet syntax | **SHOULD** verify against Microsoft Docs |
-| Module version requirements | **MUST** check gallery for current version |
-| General best practices | Static references are sufficient |
+| Command kind | URL template |
+|--------------|--------------|
+| **Core PowerShell**<br>`Get-ChildItem`, `Write-Output`, `Invoke-Command` | `https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/main/reference/{version}/{Module}/{Cmdlet}.md` |
+| **Conceptual**<br>`about_Splatting`, `about_CommonParameters` | `https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/main/reference/{version}/Microsoft.PowerShell.Core/About/{about_Topic}.md` |
+| **Windows-only**<br>`Get-ADUser`, `Get-DnsServerZone`, `Get-MpComputerStatus` | `https://raw.githubusercontent.com/MicrosoftDocs/windows-powershell-docs/main/docset/winserver2025-ps/{Module}/{Cmdlet}.md` |
+| **Gallery / packaging**<br>`Install-PSResource`, `Find-PSResource` | `https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/main/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/{Cmdlet}.md` |
+| **Satellite modules**<br>`Invoke-ScriptAnalyzer`, `Get-Secret` | `https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs-Modules/main/reference/ps-modules/{Module}/{Cmdlet}.md` |
 
-### Step 1: Verify Module on PowerShell Gallery
+`{version}` is one of `5.1`, `7.4`, `7.5`, `7.6`, `7.7`. Pin it from context —
+`#Requires`, `pwsh`, ISE, or a stated platform. **With no signal, fetch both `7.5` and
+`5.1` and state any parameter difference**, since the wrong edition yields syntax that
+looks authentic but fails on the user's shell.
 
-When recommending or checking a module, **use the WebFetch tool** to verify it exists:
+**WebFetch prompt**: `Extract the complete syntax blocks, the full parameter table with
+types and defaults, and the examples.`
 
-**WebFetch call:**
+Three rules govern URL construction:
+
+1. **Case matters.** Raw paths are case-sensitive where `learn.microsoft.com` is not.
+   `.../activedirectory/Get-ADUser.md` returns 404; `.../ActiveDirectory/Get-ADUser.md`
+   returns 200. Preserve the module's own casing.
+2. **Never point at a folder.** Raw serves blobs only — any URL ending in `/` returns
+   404. There is no directory-listing endpoint.
+3. **Convert page URLs.** Rewrite `github.com/{owner}/{repo}/blob/{branch}/{path}` to
+   `raw.githubusercontent.com/{owner}/{repo}/{branch}/{path}`.
+
+Routing a cmdlet to the right repository, module, and version folder is covered in
+**[doc-sources.md](references/doc-sources.md)**, along with complete module inventories
+and a 404 troubleshooting table. Consult it whenever the correct path is not obvious.
+
+### Fallback Chain
+
+Escalate only on failure, one step at a time:
+
+| Step | Tool | Use when |
+|------|------|----------|
+| 1 | **WebFetch** raw markdown | Default — always attempt first |
+| 2 | **WebFetch** contents API<br>`https://api.github.com/repos/{owner}/{repo}/contents/{path}` | A folder name is unknown. Returns plain JSON that parses cleanly; 60 requests/hour unauthenticated |
+| 3 | **WebFetch** `learn.microsoft.com` | No raw source exists (third-party modules, Learn-only articles) |
+| 4 | **WebSearch** | Path cannot be derived. Query: `{Cmdlet-Name} site:learn.microsoft.com/en-us/powershell` — then convert the result back to a raw URL and return to step 1 |
+| 5 | Local execution | Tools unavailable. Ask the user to run `Get-Help {Cmdlet} -Full` or `Get-Command {Cmdlet} -Syntax` |
+
+If every step fails, state the uncertainty explicitly rather than guessing:
+
+> "I wasn't able to verify this against live documentation. Please confirm by running:
+> `Get-Command Cmdlet-Name -Syntax`"
+
+### Module Verification
+
+Gallery packages have no markdown source. **WebFetch** the listing page directly:
+
 - **URL**: `https://www.powershellgallery.com/packages/{ModuleName}`
-- **Prompt**: `Extract: module name, latest version, last updated date, total downloads, and whether it shows any deprecation warning or 'unlisted' status`
+- **Prompt**: `Extract: module name, latest version, last updated date, total downloads,
+  and whether it shows any deprecation warning or 'unlisted' status`
 
-**If WebFetch returns 404 or error**: The module likely doesn't exist. **Use the WebSearch tool** to confirm:
-- **Query**: `{ModuleName} PowerShell module site:powershellgallery.com`
+A 404 means the module likely does not exist — confirm with **WebSearch** for
+`{ModuleName} PowerShell module site:powershellgallery.com`. If both tools are
+unavailable, execute `scripts/Search-Gallery.ps1 -Name 'ModuleName'`.
 
-### Step 2: Verify Cmdlet Syntax (When Needed)
+| Scenario | Requirement |
+|----------|-------------|
+| User asks whether module X exists | **MUST** verify on the Gallery |
+| Recommending a specific module | **MUST** verify it exists and is not deprecated |
+| Stating a module version requirement | **MUST** check the Gallery for the current version |
+| Providing exact cmdlet syntax | **SHOULD** verify against raw markdown |
+| General best practices | Static references suffice |
 
-Microsoft Docs URLs vary by module. **Use the WebSearch tool** to find the correct documentation page:
+**Good** (verified against live data):
+> "ImportExcel (v7.8.10, updated Oct 2024, 17M+ downloads) provides `Export-Excel` for
+> creating spreadsheets without Excel installed."
 
-**WebSearch call:**
-- **Query**: `{Cmdlet-Name} cmdlet site:learn.microsoft.com/en-us/powershell`
+**Bad** (unverified):
+> "Use the Excel-Tools module to export data." ← may not exist
 
-**Then use WebFetch** on the returned URL with prompt:
-- **Prompt**: `Extract the complete cmdlet syntax, required vs optional parameters, and PowerShell version requirements`
+### Rendered Documentation
 
-**For PSResourceGet cmdlets specifically**, fetch the raw markdown directly:
-- **URL**: `https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/{Cmdlet-Name}.md`
-- **Prompt**: `Extract the complete cmdlet syntax, required vs optional parameters, and examples`
+Browse these manually; prefer the raw sources above when fetching.
 
-### Step 3: Fallback Strategies
+| Resource | URL |
+|----------|-----|
+| PowerShell documentation | https://learn.microsoft.com/en-us/powershell/ |
+| Module browser | https://learn.microsoft.com/en-us/powershell/module/ |
+| PowerShell Gallery | https://www.powershellgallery.com |
 
-If the WebFetch or WebSearch tools are unavailable or return errors:
+## Reference Files
 
-1. **For module verification**: Execute `Search-Gallery.ps1` from this skill:
-   ```powershell
-   ~/.claude/skills/powershell-expert/scripts/Search-Gallery.ps1 -Name 'ModuleName'
-   ```
+| Topic | File |
+|-------|------|
+| Documentation routing, raw URL maps, 404 troubleshooting | [references/doc-sources.md](references/doc-sources.md) |
+| Naming, parameters, pipeline, error handling, code style | [references/best-practices.md](references/best-practices.md) |
+| Windows Forms, WPF, controls, events, templates | [references/gui-development.md](references/gui-development.md) |
+| Find, install, update, publish modules | [references/powershellget.md](references/powershellget.md) |
 
-2. **For cmdlet syntax**: Suggest the user run locally:
-   ```powershell
-   Get-Help Cmdlet-Name -Full
-   Get-Command Cmdlet-Name -Syntax
-   ```
+## Included Scripts
 
-3. **Clearly state uncertainty**: If verification fails, tell the user:
-   > "I wasn't able to verify this against live documentation. Please confirm
-   > the module exists by running: `Find-PSResource -Name 'ModuleName'`"
-
-### Verification Examples
-
-**Good** (verified with live data):
-> "The ImportExcel module (v7.8.10, updated Oct 2024, 17M+ downloads)
-> provides Export-Excel for creating spreadsheets without Excel installed."
-
-**Bad** (unverified claim):
-> "Use the Excel-Tools module to export data." ← May not exist!
-
-## Documentation Resources
-
-- **PowerShell Docs**: https://learn.microsoft.com/en-us/powershell/
-- **Module Browser**: https://learn.microsoft.com/en-us/powershell/module/
-- **PowerShell Gallery**: https://www.powershellgallery.com
-- **GitHub Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/PowerShell-Docs/live/reference/
-- **PSResourceGet Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/
-
-## References
-
-- **[best-practices.md](references/best-practices.md)** - Naming, parameters, pipeline, error handling, code style
-- **[gui-development.md](references/gui-development.md)** - Windows Forms, WPF, controls, events, templates
-- **[powershellget.md](references/powershellget.md)** - Find, install, update, publish modules
+| Script | Purpose |
+|--------|---------|
+| [scripts/Search-Gallery.ps1](scripts/Search-Gallery.ps1) | Formatted PowerShell Gallery search with legacy `Find-Module` fallback |

@@ -29,6 +29,18 @@
 | `Get-InstalledModule` | `Get-InstalledPSResource` |
 | `Publish-Module` | `Publish-PSResource` |
 
+### Cmdlets Without a Legacy Equivalent
+| Cmdlet | Purpose |
+|--------|---------|
+| `Compress-PSResource` | Package a resource into a `.nupkg` without publishing |
+| `Import-PSGetRepository` | Migrate repositories registered under legacy PowerShellGet |
+| `Reset-PSResourceRepository` | Restore repository configuration to defaults |
+| `Update-PSModuleManifest` | Modify an existing `.psd1` manifest in place |
+| `Get-PSScriptFileInfo` / `New-PSScriptFileInfo` / `Update-PSScriptFileInfo` / `Test-PSScriptFileInfo` | Read, create, modify, and validate script metadata blocks |
+
+For the complete cmdlet inventory and raw documentation URLs, see
+[doc-sources.md](doc-sources.md#3-psresourceget-and-powershellget).
+
 ---
 
 ## Setup
@@ -201,10 +213,13 @@ Uninstall-PSResource -Name 'Module' -SkipDependencyCheck
 
 ### Save Modules (Download without install)
 ```powershell
-# Save to path for offline use
+# Save to path for offline use — dependencies are included by default
 Save-PSResource -Name 'Az.Compute' -Path 'C:\OfflineModules'
 
-# Include dependencies
+# Skip dependencies
+Save-PSResource -Name 'Az.Compute' -Path 'C:\OfflineModules' -SkipDependencyCheck
+
+# Include the PSGetModuleInfo.xml metadata file alongside the module
 Save-PSResource -Name 'Az' -Path 'C:\OfflineModules' -IncludeXml
 ```
 
@@ -247,20 +262,23 @@ Publish-PSResource -Path './MyModule' -ApiKey $apiKey -WhatIf
 
 ### Install if Missing
 ```powershell
-function Ensure-Module {
-    param([string]$Name, [string]$MinVersion)
+function Initialize-RequiredModule {
+    param([string]$Name, [string]$MinimumVersion)
 
     $installed = Get-InstalledPSResource -Name $Name -ErrorAction SilentlyContinue
 
-    if (-not $installed -or ($MinVersion -and $installed.Version -lt $MinVersion)) {
+    if (-not $installed -or ($MinimumVersion -and $installed.Version -lt $MinimumVersion)) {
         Install-PSResource -Name $Name -Scope CurrentUser -TrustRepository
     }
 
     Import-Module $Name
 }
 
-Ensure-Module -Name 'Az.Compute' -MinVersion '5.0.0'
+Initialize-RequiredModule -Name 'Az.Compute' -MinimumVersion '5.0.0'
 ```
+
+> `Initialize` is an approved verb (`Get-Verb`); `Ensure` is not. Helper functions in
+> reference material follow the same naming rules as shipped code.
 
 ### Bulk Install from List
 ```powershell
@@ -297,9 +315,21 @@ Find-PSResource -Name '*' -Repository PSGallery |
 
 ## Useful Links
 
+### Fetchable (WebFetch)
+
+| Resource | URL |
+|----------|-----|
+| Cmdlet reference (raw markdown) | `https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/main/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/{Cmdlet}.md` |
+| Module listing | `https://www.powershellgallery.com/packages/{ModuleName}` |
+| Gallery status | https://raw.githubusercontent.com/PowerShell/PowerShellGallery/master/psgallery_status.md |
+
+Substitute `{Cmdlet}` with the exact `Verb-Noun` casing — raw paths are case-sensitive,
+and a URL ending in `/` returns 404. See [doc-sources.md](doc-sources.md) for routing
+rules and the fallback chain.
+
+### For Browsing
+
 - **PowerShell Gallery**: https://www.powershellgallery.com
-- **Gallery Status**: https://raw.githubusercontent.com/PowerShell/PowerShellGallery/master/psgallery_status.md
 - **Gallery Issues**: https://github.com/PowerShell/PowerShellGallery/issues
 - **Module Browser**: https://learn.microsoft.com/en-us/powershell/module/
 - **PSResourceGet Docs**: https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.psresourceget/
-- **PSResourceGet Docs (raw)**: https://raw.githubusercontent.com/MicrosoftDocs/powershell-docs-psget/live/powershell-gallery/powershellget-3.x/Microsoft.PowerShell.PSResourceGet/
